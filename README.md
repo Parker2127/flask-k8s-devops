@@ -35,13 +35,18 @@ graph LR
 
 ## 🛠 Tech Stack
 
-| Category   | Tools                     |
-| ---------- | ------------------------- |
-| Cloud      | Azure (AKS, ACR)          |
-| IaC        | Terraform, Azure CLI      |
-| Containers | Docker, Python            |
-| Monitoring | Prometheus, Grafana, Helm |
-| CI/CD      | GitHub Actions            |
+| Category   | Tool           | Purpose                           | Docs                                                                |
+| ---------- | -------------- | --------------------------------- | ------------------------------------------------------------------- |
+| Cloud      | Azure AKS      | Managed Kubernetes cluster        | [Docs](https://learn.microsoft.com/en-us/azure/aks/)                |
+| Cloud      | Azure ACR      | Container image registry          | [Docs](https://learn.microsoft.com/en-us/azure/container-registry/) |
+| IaC        | Terraform      | Infrastructure provisioning       | [Docs](https://developer.hashicorp.com/terraform/docs)              |
+| IaC        | Azure CLI      | Resource management via CLI       | [Docs](https://learn.microsoft.com/en-us/cli/azure/)                |
+| Containers | Docker         | Image build & containerization    | [Docs](https://docs.docker.com/)                                    |
+| Containers | Python / Flask | Application runtime & framework   | [Docs](https://flask.palletsprojects.com/)                          |
+| Monitoring | Prometheus     | Metrics collection & alerting     | [Docs](https://prometheus.io/docs/)                                 |
+| Monitoring | Grafana        | Dashboards & visualization        | [Docs](https://grafana.com/docs/)                                   |
+| Monitoring | Helm           | Kubernetes package manager        | [Docs](https://helm.sh/docs/)                                       |
+| CI/CD      | GitHub Actions | Automated build & deploy pipeline | [Docs](https://docs.github.com/en/actions)                          |
 
 ---
 
@@ -76,14 +81,14 @@ cd terraform
 terraform init
 ```
 
-**4. Provision Infrastructure**
+**4. Provision infrastructure**
 
 ```bash
-terraform plan     # Preview changes
+terraform plan          # Preview changes
 terraform apply -auto-approve
 ```
 
-**5. Build & Push Docker Image**
+**5. Build & push Docker image**
 
 ```bash
 # Build the Flask app image
@@ -121,7 +126,7 @@ Access Grafana:
 
 ```bash
 kubectl port-forward svc/monitoring-grafana 3000:80
-# Open http://localhost:3000 (default: admin / prom-operator)
+# Open http://localhost:3000 (default credentials: admin / prom-operator)
 ```
 
 ---
