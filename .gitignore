@@ -1,0 +1,20 @@
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files (These contain secrets and shouldn't be on GitHub!)
+*.tfstate
+*.tfstate.*
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Override local files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Include holiday lock file but ignore the binaries
+!.terraform.lock.hcl 
+# this means that the .terraform.lock.hcl file will be included in version control, but the .terraform directory will still be ignored. This allows you to keep track of your provider versions while still ignoring the local Terraform files.
