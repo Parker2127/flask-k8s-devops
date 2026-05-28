@@ -173,3 +173,147 @@ kubectl config current-context
 ---
 
 _Built by Shrikar Kaduluri_
+
+---
+
+## 🗺 Development Journey
+
+> This section documents the real build order, decisions, and errors encountered — useful for anyone learning DevOps by doing.
+
+---
+
+### Day 1 — Containerized Flask app with Docker
+
+**What I built:**
+
+- A lightweight Flask API (`app.py`) with no frontend — focused purely on DevOps execution
+- Used `gunicorn` as the production web server (workers = `2 * CPU cores + 1`)
+- Wrote a `Dockerfile` with image build and run instructions
+- Added `gunicornconfig.py` for worker configuration
+
+**Key files:** `app.py`, `requirements.txt`, `Dockerfile`, `gunicornconfig.py`
+
+**Commands:**
+
+```bash
+docker build -t flask-app .
+docker run -p 5000:5000 flask-app
+# Access at http://localhost:5000
+```
+
+**Learnings:**
+
+- `framework vs library` — Flask is a lightweight framework (gives you structure), a library is just a tool you call
+- `.dockerignore` is important — keeps unnecessary files out of the image
+- `gunicorn --workers` flag controls concurrency; formula: `2 * (num cores) + 1`
+
+---
+
+### Day 2 — Azure Infrastructure with Terraform
+
+**What I built:**
+
+- Provisioned Azure infrastructure using Terraform (IaC)
+- Created: Resource Group → Storage Account → Blob Container (for remote state) → ACR → AKS
+- Stored Terraform state file remotely in Azure Blob Storage to avoid local corruption
+
+**Key files:** `terraform/backend.tf`, `terraform/main.tf`, `terraform/variables.tf`, `terraform/outputs.tf`
+
+**Commands:**
+
+```bash
+az login --tenant <your-directory-id>
+terraform init     # installs Azure plugin, connects to remote backend
+terraform plan     # preview what will be created
+terraform apply    # execute the plan
+```
+
+**Errors & fixes:**
+
+<details>
+<summary><b>SubscriptionNotFound error when creating storage account</b></summary>
+
+**Error:**
+
+```
+(SubscriptionNotFound) Subscription 2268067b-... was not found.
+```
+
+**Cause:** The `Microsoft.Storage` resource provider was not registered in the subscription. Azure requires explicit registration before using a service.
+
+**Fix:** Register the resource provider manually in the Azure Portal or via CLI:
+
+```bash
+az provider register --namespace Microsoft.Storage
+```
+
+</details>
+
+<details>
+<summary><b>AKS creation failed — VM size not allowed (Standard_B2s / D-series)</b></summary>
+
+**Cause:** Azure trial accounts restrict which VM sizes can be used per region for AKS nodes.
+
+**Fix:** ACR and Resource Group were in `eastus`; switched AKS specifically to `eastus2` which allowed the node pool to provision successfully.
+
+</details>
+
+<details>
+<summary><b>GitHub Desktop warning about massive file commits</b></summary>
+
+**Cause:** The `.terraform/` directory contains large binary provider plugins that should never be committed.
+
+**Fix:** Added a `.gitignore` with:
+
+```
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+*.tfplan
+```
+
+</details>
+
+**Terraform outputs:**
+
+```
+acr_login_server    = "flaskappacrshree.azurecr.io"
+aks_cluster_name    = "flask-app-aks"
+resource_group_name = "flask-app-rg"
+```
+
+**Learnings:**
+
+- Always run `terraform plan` before `apply` — verify before you create
+- `backend.tf` stores the state file remotely so it's safe and team-accessible
+- `variables.tf` avoids hardcoded values; `outputs.tf` prints useful values after apply
+- `terraform.lock.hcl` locks provider versions for reproducibility
+- Adding Terraform to the system PATH lets your terminal recognize the `terraform` command
+
+---
+
+### Day 3 — _(coming soon)_
+
+> Push Docker image to ACR → Deploy to AKS
+
+---
+
+### Day 4 — _(coming soon)_
+
+> GitHub Actions CI/CD pipeline
+
+---
+
+### Day 5 — _(coming soon)_
+
+> Prometheus + Grafana monitoring
+
+---
+
+## 🗂 Project Flow Diagram
+
+> Architecture and flow reference used during development.
+
+<!-- Add your flow diagram image to docs/flow.png in the repo, then this will render automatically -->
+
+![Project Flow](docs/flow.png)
