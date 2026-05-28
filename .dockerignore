@@ -1,0 +1,18 @@
+# Exclude local environment files
+.env
+.venv
+venv/
+
+# Exclude source control
+.git
+.gitignore
+
+# Exclude Python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Exclude IDE/Editor files
+.vscode/
+.idea/
