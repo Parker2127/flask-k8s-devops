@@ -18,6 +18,10 @@
 - [Monitoring](#-monitoring)
 - [Learning Goals](#-learning-goals)
 - [Troubleshooting](#-troubleshooting)
+- - [Development Journey](#-development-journey)
+  - [Day 1 — Docker](#day-1--containerized-flask-app-with-docker)
+  - [Day 2 — Terraform](#day-2--azure-infrastructure-with-terraform)
+  - [Day 3 — AKS Deploy](#day-3--push-docker-image-to-acr--deploy-to-aks)
 
 ---
 
@@ -292,11 +296,138 @@ resource_group_name = "flask-app-rg"
 
 ---
 
-### Day 3 — _(coming soon)_
+## 🗂 Project Flow Diagram
 
-> Push Docker image to ACR → Deploy to AKS
+> Architecture and flow reference used during development.
 
----
+<!-- Add your flow diagram image to docs/flow.png in the repo, then this will render automatically -->
+### Day 1 + Day 2
+![Project Flow](docs/flow.png)
+
+### Day 3 — Push Docker Image to ACR & Deploy to AKS
+ 
+**What I built:**
+ 
+- Tagged and pushed the Flask Docker image to Azure Container Registry (ACR)
+- Wrote Kubernetes manifests: a `Deployment` (pods, replicas, health checks) and a `Service` (external exposure)
+- Deployed the app to AKS and verified it was running via `kubectl`
+**Key files:** `k8s/deployment.yaml`, `k8s/service.yaml`
+ 
+**Commands:**
+ 
+```bash
+# Set ACR server (PowerShell)
+$env:ACR_SERVER="flaskappacrshree.azurecr.io"
+ 
+# Log in to ACR and build image
+az acr login --name flaskappacrshree
+docker build -t $env:ACR_SERVER/flask-app:v1 .
+ 
+# Tag as latest and push both
+docker tag $env:ACR_SERVER/flask-app:v1 $env:ACR_SERVER/flask-app:latest
+docker push $env:ACR_SERVER/flask-app:v1
+docker push $env:ACR_SERVER/flask-app:latest
+ 
+# Deploy manifests to AKS
+kubectl apply -f k8s/
+ 
+# Watch pod status
+kubectl get pods -w
+ 
+# Watch service for external IP
+kubectl get service -w
+ 
+# Re-attach ACR permissions to AKS (if needed)
+az aks update -n flask-app-aks -g flask-app-rg --attach-acr flaskappacrshree
+```
+ 
+**Errors & fixes:**
+ 
+<details>
+<summary><b>Docker daemon not running — DOCKER_COMMAND_ERROR</b></summary>
+**Error:**
+ 
+```
+failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine
+```
+ 
+**Cause:** Docker Desktop was not running.
+ 
+**Fix:** Open Docker Desktop, wait for it to start, then re-run the command.
+ 
+</details>
+<details>
+<summary><b>Invalid tag format in PowerShell — invalid reference format</b></summary>
+**Error:**
+ 
+```
+ERROR: invalid tag "/flask-app:v1": invalid reference format
+```
+ 
+**Cause:** Using `$ACR_SERVER` instead of `$env:ACR_SERVER` in PowerShell — the variable wasn't being resolved.
+ 
+**Fix:**
+ 
+```powershell
+docker build -t $env:ACR_SERVER/flask-app:v1 .
+```
+ 
+</details>
+<details>
+<summary><b>Liveness/readiness probe fields in wrong YAML location</b></summary>
+**Error:**
+ 
+```
+strict decoding error: unknown field "spec.template.spec.containers[0].livenessProbe.path"
+unknown field "spec.template.spec.containers[0].livenessProbe.port"
+```
+ 
+**Cause:** `path` and `port` were placed directly under `livenessProbe` / `readinessProbe` instead of nested under `httpGet`.
+ 
+**Fix:** Move them inside the `httpGet` block:
+ 
+```yaml
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 5000
+```
+ 
+</details>
+<details>
+<summary><b>ImagePullBackOff — pods stuck, can't pull from ACR</b></summary>
+**Error:**
+ 
+```
+ErrImagePull → ImagePullBackOff
+```
+ 
+**Cause:** Azure free trial had expired, causing the AKS → ACR permission attachment to break.
+ 
+**Fix:** Upgraded to Pay-As-You-Go and re-attached ACR permissions:
+ 
+```bash
+az aks update -n flask-app-aks -g flask-app-rg --attach-acr flaskappacrshree
+```
+ 
+</details>
+**Learnings:**
+ 
+- Kubernetes manifests describe *desired state* — `Deployment` manages pods and replicas; `Service` exposes them externally
+- Use `latest` tag in manifests during development to avoid updating the tag name every deploy; use versioned tags in production
+- Docker is smart about layers — pushing a re-tagged image doesn't re-upload layers that already exist in the registry (it just updates the pointer)
+- In PowerShell, environment variables must use `$env:VAR_NAME` syntax, not `$VAR_NAME`
+- `livenessProbe` and `readinessProbe` fields (`path`, `port`) must be nested under `httpGet`, not at the probe root level
+- AKS needs explicit permission (`--attach-acr`) to pull images from ACR — this can break if subscription access changes
+
+
+## 🗂 Project Flow Diagram
+
+> Architecture and flow reference used during development.
+
+<!-- Add your flow diagram image to docs/flow.png in the repo, then this will render automatically -->
+### Day 3
+![Project Flow](docs/flow-2.png)
 
 ### Day 4 — _(coming soon)_
 
@@ -310,10 +441,4 @@ resource_group_name = "flask-app-rg"
 
 ---
 
-## 🗂 Project Flow Diagram
 
-> Architecture and flow reference used during development.
-
-<!-- Add your flow diagram image to docs/flow.png in the repo, then this will render automatically -->
-### Day 1 + Day 2
-![Project Flow](docs/flow.png)
