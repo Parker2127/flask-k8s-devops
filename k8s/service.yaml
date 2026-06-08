@@ -1,0 +1,14 @@
+apiVersion: v1 # API version for the service
+kind: Service # Type of Kubernetes object
+metadata: # Metadata for the service
+  name: flask-app-service
+spec: # Specification for the service
+  type: LoadBalancer # Type of service to create a load balancer  
+  # load balancer tells Azure to cratre a public IP address and route traffic from internet to service and then to the pods. It also provides a single IP address to access the service, which can be used in DNS records or for external access.
+  # other options : clusterIP (default) - only accessible within the cluster, NodePort - exposes the service on a static port on each node's IP address, LoadBalancer - creates an external load balancer and assigns a fixed, external IP to the service
+  selector:
+    app: flask-app
+  ports:
+    - protocol: TCP
+      port: 80 # Port that the service will listen on, that users will access
+      targetPort: 5000 # port on the pod, what flask listen on, that the service will route traffic to

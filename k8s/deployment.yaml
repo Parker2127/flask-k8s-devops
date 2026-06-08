@@ -1,0 +1,33 @@
+apiVersion: apps/v1 # API version for the deployment
+kind: Deployment # Type of Kubernetes object
+metadata:
+  name: flask-app # Name of the deployment
+spec:
+  replicas: 2 # Run 2 pods all the time # if one pod goes down, another one will be created to replace it, zero downtime
+  selector:
+    matchLabels:
+      app: flask-app # Label to identify the pods managed by this deployment
+  template: # blueprint for the pods that will be created by this deployment
+    metadata:
+      labels:
+        app: flask-app # Label to identify the pods created by this deployment
+    spec:
+      containers:
+      - name: flask-app # Name of the container
+        image: flaskappacrshree.azurecr.io/flask-app:latest # Container image to use
+        ports:
+        - containerPort: 5000 # Port that the container will listen on  
+        # Liveness probe checks if the container is alive and should be restarted if it fails, while readiness probe checks if the container is ready to serve traffic and should not receive traffic until it passes
+        # If it fails 3 times in a row, the container will be restarted. If it fails 3 times in a row, the container will be marked as not ready and will not receive traffic until it passes.
+        livenessProbe: # Health check to ensure the container is running
+          httpGet:
+            path: /health # Path to check for liveness
+            port: 5000 # Port to check for liveness
+          initialDelaySeconds: 10 # Time to wait before starting liveness checks
+          periodSeconds: 10 # Time between liveness checks
+        readinessProbe: # Health check to ensure the container is ready to serve traffic
+          httpGet:
+            path: /health # Path to check for readiness
+            port: 5000 # Port to check for readiness
+          initialDelaySeconds: 5 # Time to wait before starting readiness checks
+          periodSeconds: 5 # Time between readiness checks
