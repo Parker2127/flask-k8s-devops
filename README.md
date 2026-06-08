@@ -235,6 +235,20 @@ terraform apply    # execute the plan
 **Errors & fixes:**
 
 <details>
+<summary><b>Could not connect to Azure subscription on az login</b></summary>
+**Cause:** Running `az login` alone sometimes connects to the wrong tenant or fails to find your subscription.
+ 
+**Fix:** Specify the target directory (tenant) ID explicitly:
+ 
+```bash
+az login --tenant "your-directory-id"
+```
+ 
+You can find your Directory (Tenant) ID in the Azure Portal under **Microsoft Entra ID → Overview**.
+ 
+</details>
+
+<details>
 <summary><b>SubscriptionNotFound error when creating storage account</b></summary>
 
 **Error:**
