@@ -315,5 +315,5 @@ resource_group_name = "flask-app-rg"
 > Architecture and flow reference used during development.
 
 <!-- Add your flow diagram image to docs/flow.png in the repo, then this will render automatically -->
-
+### Day 1 + Day 2
 ![Project Flow](docs/flow.png)
