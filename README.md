@@ -22,6 +22,7 @@
   - [Day 1 — Docker](#day-1--containerized-flask-app-with-docker)
   - [Day 2 — Terraform](#day-2--azure-infrastructure-with-terraform)
   - [Day 3 — AKS Deploy](#day-3--push-docker-image-to-acr--deploy-to-aks)
+  - [Day 4 — CI/CD](#day-4--github-actions-cicd-pipeline)
 
 ---
 
