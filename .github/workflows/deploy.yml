@@ -1,0 +1,51 @@
+name: Build and Deploy to AKS
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  ACR_SERVER: ${{ secrets.ACR_NAME }}.azurecr.io
+  IMAGE_NAME: flask-app
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: >-
+            {
+              "clientId": "${{ secrets.AZURE_CLIENT_ID }}",
+              "clientSecret": "${{ secrets.AZURE_CLIENT_SECRET }}",
+              "tenantId": "${{ secrets.AZURE_TENANT_ID }}",
+              "subscriptionId": "${{ secrets.AZURE_SUBSCRIPTION_ID }}"
+            }
+
+      - name: Log in to ACR
+        run: az acr login --name ${{ secrets.ACR_NAME }}
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t $ACR_SERVER/$IMAGE_NAME:${{ github.sha }} .
+          docker push $ACR_SERVER/$IMAGE_NAME:${{ github.sha }}
+          docker tag $ACR_SERVER/$IMAGE_NAME:${{ github.sha }} $ACR_SERVER/$IMAGE_NAME:latest
+          docker push $ACR_SERVER/$IMAGE_NAME:latest
+
+      - name: Set AKS context
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ secrets.AKS_RESOURCE_GROUP }}
+          cluster-name: ${{ secrets.AKS_CLUSTER_NAME }}
+
+      - name: Deploy to AKS
+        run: |
+          kubectl set image deployment/flask-app \
+            flask-app=$ACR_SERVER/$IMAGE_NAME:${{ github.sha }}
+          kubectl rollout status deployment/flask-app --timeout=120s

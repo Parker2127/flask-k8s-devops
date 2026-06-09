@@ -8,7 +8,7 @@ app=Flask(__name__)
 @app.route("/") # routing, root URL+``
 
 def home():
-    return { "messagge":"hello from flask", "version":"1.0"}
+    return { "messagge":"hello from flask", "version":"2.0"}
 # return JSON at the root URL
 
 @app.route("/health") # routing, health check URL
