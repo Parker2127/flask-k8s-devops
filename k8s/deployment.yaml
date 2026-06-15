@@ -3,7 +3,7 @@ kind: Deployment # Type of Kubernetes object
 metadata:
   name: flask-app # Name of the deployment
 spec:
-  replicas: 2 # Run 2 pods all the time # if one pod goes down, another one will be created to replace it, zero downtime
+  replicas: 4 # Run 4 pods all the time # if one pod goes down, another one will be created to replace it, zero downtime
   selector:
     matchLabels:
       app: flask-app # Label to identify the pods managed by this deployment
