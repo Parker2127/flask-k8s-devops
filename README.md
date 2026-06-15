@@ -22,6 +22,7 @@
   - [Day 1 — Docker](#day-1--containerized-flask-app-with-docker)
   - [Day 2 — Terraform](#day-2--azure-infrastructure-with-terraform)
   - [Day 3 — AKS Deploy](#day-3--push-docker-image-to-acr--deploy-to-aks)
+  - [Day 4 — CI/CD](#day-4--github-actions-cicd-pipeline)
 
 ---
 
@@ -443,11 +444,88 @@ az aks update -n flask-app-aks -g flask-app-rg --attach-acr flaskappacrshree
 ### Day 3
 ![Project Flow](docs/flow-2.png)
 
-### Day 4 — _(coming soon)_
-
-> GitHub Actions CI/CD pipeline
 
 ---
+ 
+### Day 4 — GitHub Actions CI/CD Pipeline
+ 
+**What I built:**
+ 
+- Created an Azure Service Principal to give GitHub Actions permission to deploy to Azure
+- Stored all credentials as GitHub Secrets (never in code)
+- Wrote a CI/CD pipeline in `.github/workflows/deploy.yml` that automatically builds, pushes, and deploys on every push to `main`
+- Verified the pipeline end-to-end: GitHub Actions tab, ACR repo showing the git SHA tag, and AKS pods/deployments updated within minutes
+**Key files:** `.github/workflows/deploy.yml`
+ 
+**Step 0 — Create a Service Principal**
+ 
+A Service Principal is an identity that GitHub Actions uses to authenticate with Azure. Run this once and save the output securely — never commit it to git.
+ 
+```bash
+az ad sp create-for-rbac \
+  --name "flask-app-github-actions" \
+  --role contributor \
+  --scopes /subscriptions/<your-subscription-id>
+```
+ 
+This outputs credentials in the form:
+ 
+```json
+{
+  "appId": "...",
+  "displayName": "flask-app-github-actions",
+  "password": "...",
+  "tenant": "..."
+}
+```
+ 
+**Step 1 — Add GitHub Secrets**
+ 
+In your GitHub repo go to **Settings → Secrets and variables → Actions** and add these 7 secrets:
+ 
+| Secret | Value |
+|---|---|
+| `AZURE_CLIENT_ID` | `appId` from service principal output |
+| `AZURE_CLIENT_SECRET` | `password` from service principal output |
+| `AZURE_TENANT_ID` | `tenant` from service principal output |
+| `AZURE_SUBSCRIPTION_ID` | Your Azure subscription ID |
+| `ACR_NAME` | `flaskappacrshree` |
+| `AKS_CLUSTER_NAME` | `flask-app-aks` |
+| `AKS_RESOURCE_GROUP` | `flask-app-rg` |
+ 
+**Step 2 — The Pipeline**
+ 
+The full pipeline is at `.github/workflows/deploy.yml`. It runs on every push to `main` and does 5 things in order: checkout code → login to Azure → login to ACR → build & push image (tagged with `github.sha`) → deploy to AKS and wait for rollout.
+ 
+**Errors & fixes:**
+ 
+<details>
+<summary><b>Azure login step failing in GitHub Actions</b></summary>
+**Cause:** Initially tried combining all credentials into a single GitHub Secret. GitHub Actions couldn't parse it correctly.
+ 
+**Fix:** Create 7 individual secrets (one per value) as listed in the table above. Each secret is referenced separately in the YAML with `${{ secrets.SECRET_NAME }}`.
+ 
+</details>
+**Verification:**
+ 
+- **GitHub Actions tab** — all steps green, pipeline passed
+- **ACR → Repositories → flask-app** — image tagged with the git commit SHA, confirming the build and push worked
+- **AKS → Workloads → Pods/Deployments** — new pods rolled out within the last 5 minutes, confirming the deploy worked
+**Learnings:**
+ 
+- A Service Principal is a non-human Azure identity — it's how automated tools like GitHub Actions authenticate with Azure without using your personal credentials
+- Never commit Service Principal credentials to git; store them as GitHub Secrets
+- Each secret must be its own entry in GitHub — combining multiple values into one secret doesn't work
+- The pipeline uses `github.sha` (the commit hash) to tag each image, giving you a traceable, unique tag per deploy — `latest` is also updated so Kubernetes always has a stable pointer
+- `kubectl rollout status` blocks the pipeline until the deployment is healthy, so a failed deploy fails the pipeline too — not silently
+---
+## 🗂 Project Flow Diagram
+
+> Architecture and flow reference used during development.
+
+<!-- Add your flow diagram image to docs/flow.png in the repo, then this will render automatically -->
+### Day 4
+![Project Flow](docs/flow-3.png)
 
 ### Day 5 — _(coming soon)_
 
