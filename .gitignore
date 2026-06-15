@@ -14,7 +14,25 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+access_token.json
+account_list.json
 
 # Include holiday lock file but ignore the binaries
 !.terraform.lock.hcl 
 # this means that the .terraform.lock.hcl file will be included in version control, but the .terraform directory will still be ignored. This allows you to keep track of your provider versions while still ignoring the local Terraform files.
+
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+*.tfplan
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Sensitive JSON files
+access_token.json
+account_list.json
+provider_storage.json
+debug_az_create.txt
+
