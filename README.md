@@ -23,6 +23,7 @@
   - [Day 2 — Terraform](#day-2--azure-infrastructure-with-terraform)
   - [Day 3 — AKS Deploy](#day-3--push-docker-image-to-acr--deploy-to-aks)
   - [Day 4 — CI/CD](#day-4--github-actions-cicd-pipeline)
+  - [Day 5 — Monitoring](#day-5--prometheus--grafana-monitoring)
 
 ---
 
@@ -518,6 +519,48 @@ The full pipeline is at `.github/workflows/deploy.yml`. It runs on every push to
 - Each secret must be its own entry in GitHub — combining multiple values into one secret doesn't work
 - The pipeline uses `github.sha` (the commit hash) to tag each image, giving you a traceable, unique tag per deploy — `latest` is also updated so Kubernetes always has a stable pointer
 - `kubectl rollout status` blocks the pipeline until the deployment is healthy, so a failed deploy fails the pipeline too — not silently
+
+#### 🧪 Experiments
+ 
+**Rollback — intentional bug to test recovery**
+ 
+Added a deliberate exception to `app.py`, pushed to `main`, and let the pipeline deploy the broken version. Then practiced rolling back via kubectl.
+ 
+First, added deployment annotations so rollout history is traceable (updated in `deploy.yml`):
+ 
+```bash
+kubectl annotate deployment/flask-app \
+  kubernetes.io/change-cause="Deployed via GitHub Action: <run-url>" --overwrite
+```
+ 
+```bash
+kubectl rollout history deployment/flask-app
+# REVISION  CHANGE-CAUSE
+# 7         Deployed via GitHub Action: https://github.com/...
+```
+ 
+```bash
+kubectl rollout undo deployment/flask-app
+kubectl rollout status deployment/flask-app
+# deployment "flask-app" successfully rolled out
+```
+ 
+> **Key insight — Live State vs Desired State:**
+> `kubectl rollout undo` fixes the live cluster, but your Git repo still has the broken code. The cluster and your repo are now out of sync. In production, the right fix is to revert the commit in Git and let the pipeline redeploy — not to patch the cluster directly.
+ 
+---
+ 
+**Scaling — manually adjusting replica count**
+ 
+```bash
+kubectl scale deployment flask-app --replicas=4   # scale up
+kubectl get pods                                   # watch 4 pods come up
+kubectl scale deployment flask-app --replicas=2   # scale back down
+```
+ 
+Kubernetes immediately spun up 2 new pods and then gracefully terminated 2 when scaled back down. You'd scale up before an expected traffic spike and scale down after to save cost.
+ 
+---
 ---
 ## 🗂 Project Flow Diagram
 
@@ -527,10 +570,77 @@ The full pipeline is at `.github/workflows/deploy.yml`. It runs on every push to
 ### Day 4
 ![Project Flow](docs/flow-3.png)
 
-### Day 5 — _(coming soon)_
+### Day 5 — Prometheus & Grafana Monitoring
+ 
+**What I built:**
+ 
+- Scaled the AKS cluster to 2 nodes via Terraform to support the monitoring stack
+- Deployed Prometheus and Grafana to the cluster using Helm into a dedicated `monitoring` namespace
+- Accessed the Grafana dashboard locally via port-forwarding and explored pre-built Kubernetes dashboards
+**Commands:**
+ 
+```bash
+# Add and update Helm repo (if not already done)
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+ 
+# Install the full monitoring stack
+helm install monitoring prometheus-community/kube-prometheus-stack \
+  --namespace monitoring --create-namespace
+ 
+# Verify all pods are running
+kubectl get pods --namespace monitoring
+ 
+# Get Grafana admin password
+kubectl --namespace monitoring get secrets monitoring-grafana \
+  -o jsonpath="{.data.admin-password}" | base64 -d ; echo
+ 
+# Port-forward Grafana to localhost
+kubectl --namespace monitoring port-forward \
+  $(kubectl --namespace monitoring get pod -l "app.kubernetes.io/name=grafana" -oname) 3000
+# Open http://localhost:3000
+```
+ 
+**Errors & fixes:**
+ 
+<details>
+<summary><b>Terraform apply failed — OIDCIssuerFeatureCannotBeDisabled</b></summary>
+**Error:**
+ 
+```
+OIDCIssuerFeatureCannotBeDisabled: OIDC issuer feature cannot be disabled.
+```
+ 
+**Cause:** OIDC issuer was previously enabled on the AKS cluster (used for Workload Identity). Once enabled, it's an immutable property — Azure won't let you turn it off.
+ 
+**Fix:** Leave `oidc_issuer_enabled = true` in `main.tf`. It has no impact on cost or performance — it just keeps the feature available. The only alternative would be destroying and recreating the cluster, which isn't worth it.
+ 
+</details>
+**How Helm values work (and when to change them)**
+ 
+Helm installs the stack with sensible defaults, but in a real environment you'd override specific values using a custom file rather than editing the charts directly:
+ 
+1. Create `k8s-monitoring/monitoring-values.yaml` with only the settings you want to change
+2. Apply with `helm upgrade monitoring prometheus-community/kube-prometheus-stack -n monitoring -f k8s-monitoring/monitoring-values.yaml`
+Common reasons to override defaults: increasing Prometheus memory limits, extending data retention beyond 15 days, adding custom alert rules (e.g. Slack notification at 80% CPU), or locking down Grafana with authentication.
+ 
+> **Declarative mindset:** Don't patch the cluster manually with `kubectl edit`. Define everything in `monitoring-values.yaml`, commit it to Git, and run `helm upgrade`. Git becomes the source of truth for your monitoring config — same as it is for your app.
+ 
+**Learnings:**
+ 
+- Prometheus scrapes metrics from the cluster every few seconds and stores them as time-series data; Grafana reads that data and turns it into dashboards
+- Helm is a package manager for Kubernetes — `helm install` deploys a pre-packaged set of manifests called a chart
+- The `--namespace monitoring --create-namespace` flags keep monitoring resources isolated from your app
+- Never edit Helm charts directly — use override value files so your config stays in Git
+- OIDC issuer and similar AKS security features are one-way switches — once enabled, they can't be disabled without destroying the cluster
+---
+> Architecture and flow reference used during development.
 
-> Prometheus + Grafana monitoring
-
+<!-- Add your flow diagram image to docs/flow.png in the repo, then this will render automatically -->
+### Day 5
+![Project Flow](docs/flow-4.png)
+![Grafana Kubernetes Pods Dashboard](docs/grafana.png)
+![Grafana Kubernetes Cluster Dashboard](docs/grafana-2.png)
 ---
 
 
