@@ -634,13 +634,19 @@ Common reasons to override defaults: increasing Prometheus memory limits, extend
 - Never edit Helm charts directly — use override value files so your config stays in Git
 - OIDC issuer and similar AKS security features are one-way switches — once enabled, they can't be disabled without destroying the cluster
 ---
+## 🗂 Project Flow Diagram
+
 > Architecture and flow reference used during development.
 
 <!-- Add your flow diagram image to docs/flow.png in the repo, then this will render automatically -->
 ### Day 5
+
 ![Project Flow](docs/flow-4.png)
+
 ![Grafana Kubernetes Pods Dashboard](docs/grafana.png)
+
 ![Grafana Kubernetes Cluster Dashboard](docs/grafana-2.png)
+
 ---
 
 
