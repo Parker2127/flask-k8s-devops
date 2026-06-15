@@ -50,4 +50,4 @@ jobs:
             flask-app=$ACR_SERVER/$IMAGE_NAME:${{ github.sha }}
           kubectl rollout status deployment/flask-app --timeout=120s
 
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+
