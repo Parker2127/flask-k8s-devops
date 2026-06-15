@@ -8,7 +8,6 @@ app=Flask(__name__)
 @app.route("/") # routing, root URL+``
 
 def home():
-    raise Exception("oh no, something broke")  # intentional bug
     return { "messagge":"hello from flask", "version":"2.0"}
 # return JSON at the root URL
 
