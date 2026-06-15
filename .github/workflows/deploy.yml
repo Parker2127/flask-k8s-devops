@@ -48,6 +48,9 @@ jobs:
         run: |
           kubectl set image deployment/flask-app \
             flask-app=$ACR_SERVER/$IMAGE_NAME:${{ github.sha }}
+            
+          kubectl annotate deployment/flask-app kubernetes.io/change-cause="Deployed via GitHub Action: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" --overwrite
+
           kubectl rollout status deployment/flask-app --timeout=120s
 
 
