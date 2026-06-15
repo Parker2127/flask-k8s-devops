@@ -38,9 +38,12 @@ resource "azurerm_kubernetes_cluster" "aks" {
   resource_group_name = azurerm_resource_group.main.name
   dns_prefix          = "flaskappaks" #used in cluster endpoint URL, must be globally unique
 
+  # REQUIRED: Add this line to match the cluster's existing state
+  oidc_issuer_enabled = true
+
   default_node_pool {
     name       = "default"
-    node_count = 1                 # one for local project, usually 3+ for production
+    node_count = 2                 # one for local project, usually 3+ for production
     vm_size    = "Standard_D2s_v3" # cost effective for development, for production use larger sizes like Standard_DS3_v2 or Standard_E4s_v3
   }
 
